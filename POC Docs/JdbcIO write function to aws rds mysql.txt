@@ -1,0 +1,32 @@
+JdbcIO.<KV<String, String>>write()
+	        	      .withDataSourceConfiguration(JdbcIO.DataSourceConfiguration.create(
+	        	              "com.mysql.jdbc.Driver", "jdbc:mysql://rds-msql.crgger8roage.ap-south-1.rds.amazonaws.com:6030/rdstest")
+	        	            .withUsername("dbadmin")
+	        	            .withPassword("adminpass"))
+	        	        .withStatement("insert into Employee values(?,?,?,?)")
+	        	        .withPreparedStatementSetter(new JdbcIO.PreparedStatementSetter<KV<String, String>>() {
+	        	          public void setParameters(KV<String, String> kv, PreparedStatement query) {
+	        	        	  
+	        	            query.setString(1, kv.getValue());
+	        	            query.setString(2, kv.getValue());
+	        	            query.setString(3, kv.getValue());
+	        	            query.setString(4, kv.getValue());
+	        	          }
+	        	        })
+						
+						<--------------------------------------------------------------------------------->
+						
+						.apply(JdbcIO.<String>write()
+	        	      .withDataSourceConfiguration(JdbcIO.DataSourceConfiguration.create(
+	        	              "com.mysql.jdbc.Driver", "jdbc:mysql://rds-msql.crgger8roage.ap-south-1.rds.amazonaws.com:6030/rdstest")
+	        	            .withUsername("dbadmin")
+	        	            .withPassword("adminpass"))
+	        	        .withStatement("insert into sample values(?)")
+	        	        .withPreparedStatementSetter(new JdbcIO.PreparedStatementSetter<String>() {
+
+						@Override
+						public void setParameters(String element, PreparedStatement query)
+								throws Exception {
+							query.setString(1, element);							
+						}
+	        	        }));

@@ -1,0 +1,33 @@
+mvn compile exec:java -D exec.mainClass=org.apache.beam.examples.JsonTrial -D exec.args="--runner=SparkRunner --inputFile=C:\Users\shubham\Downloads\word-count-beam\inputFiles\*.json --output=C:\Users\shubham\Downloads\word-count-beam\outputFiles\counts" -P spark-runner
+
+local -- java -jar word-count-beam-bundled-0.1.jar --runner=SparkRunner --inputFile=D:\ETL-POC-Resources\inputFiles\*.json --output=D:\ETL-POC-Resources\output\counts
+
+s3 --- java -jar beamjar.jar  --runner=SparkRunner --inputFile=C:\Users\shubham\Downloads\beamJar\*.json --bucketUrl=s3://aa-ae-coe/etlpoc/writetos3/ --awsRegion=ap-south-1 --awsAccessKey=AKIAYOTRUKBA6Y4QVJEV --awsSecretKey=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
+
+java -jar beamjar.jar --inputFile=/home/ec2-user/mysql-ver/input-files/*.json --output=counts
+
+mysql -- java -jar word-count-beam-bundled-0.1.jar  --runner=SparkRunner --inputFile=/home/ec2-user/mysql-ver/input-files/*.json --output=/home/ec2-user/mysql-ver/output-files/
+
+s3 -- java -jar word-count-beam-bundled-0.1.jar --runner=SparkRunner --inputFile=/home/ec2-user/mysql-ver/input-files-1/*.json --bucketUrl=s3://aa-ae-coe/etlpoc/writetos3/ --awsRegion=ap-south-1 --awsAccessKey=AKIAYOTRUKBA6Y4QVJEV --awsSecretKey=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
+
+C:\Users\shubham\Downloads\word-count-beam
+
+
+mvn archetype:generate -D archetypeGroupId=org.apache.beam -D archetypeArtifactId=beam-sdks-java-maven-archetypes-examples -D archetypeVersion=2.29.0 -D groupId=org.example -D artifactId=word-count-beam -D version="0.1" -D package=org.apache.beam.examples -D interactiveMode=false
+
+
+--runner=SparkRunner
+--inputFile=*.json
+--bucketUrl=s3://aa-ae-coe/etlpoc/writetos3/
+--awsRegion=ap-south-1 
+--awsAccessKey=AKIAYOTRUKBA6Y4QVJEV
+--awsSecretKey=UK7uS+t1rYoiB4wAsSwPph4Sga5gQHIxrL2xJ0mu
+
+
+mvn package exec:java -DskipTests -Dexec.mainClass=org.apache.beam.examples.WordCount -Dexec.args=" --runner=Twister2Runner --parallelism=2 --inputFile=C:\Users\shubham\Downloads\beamJar\*.json --output=output\counts" -Ptwister2-runner
+
+
+mvn package exec:java -DskipTests -Dexec.mainClass=org.apache.beam.examples.WordCount -Dexec.args=" --runner=JetRunner --jetLocalMode=3 --inputFile=C:\Users\shubham\Downloads\beamJar\*.json --output=output\counts" -Pjet-runner
+
+
+C:\Users\shubham\Downloads\sts-4.10.0.RELEASE\SpringToolSuite4.exe -dev $(ls C:\Users\shubham\.m2\repository\javax\xml\bind\jaxb-api\*\*[0-9].jar | Select-Object -Last 1)

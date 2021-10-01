@@ -1,0 +1,176 @@
+package org.apache.beam.examples;
+
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.util.Date;
+import java.util.HashMap;
+
+import org.apache.beam.sdk.Pipeline;
+import org.apache.beam.sdk.io.TextIO;
+import org.apache.beam.sdk.options.Default;
+import org.apache.beam.sdk.options.Description;
+import org.apache.beam.sdk.options.PipelineOptions;
+import org.apache.beam.sdk.options.PipelineOptionsFactory;
+import org.apache.beam.sdk.options.Validation.Required;
+
+import org.apache.beam.sdk.transforms.MapElements;
+import org.apache.beam.sdk.transforms.SimpleFunction;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.beam.sdk.io.aws.options.S3Options;
+import org.apache.beam.sdk.io.jdbc.JdbcIO;
+
+public class JsonTrial {
+
+	public interface JsonTrialOptions extends PipelineOptions {
+
+	    String getInputFile();
+
+	    void setInputFile(String value);
+	    
+	    @Required
+	    String getOutput();
+
+	    void setOutput(String value);
+	    
+//	    @Description("Import location in the format gs://<BUCKET_NAME> or s3://<BUCKET_NAME>")
+//	    @Default.String("gs://my-bucket")
+//	    String getBucketUrl();
+//
+//	    void setBucketUrl(String bucketUrl);
+//	    
+//	    @Description("AWS S3 Key ID")
+//	    @Default.String("KEY")
+//	    String getAwsAccessKey();
+//
+//	    void setAwsAccessKey(String awsAccessKey);
+//
+//	    @Description("AWS S3 Secret Key")
+//	    @Default.String("SECRET KEY")
+//	    String getAwsSecretKey();
+//
+//	    void setAwsSecretKey(String awsSecretKey);
+	    
+	  }
+
+	  @SuppressWarnings("serial")
+	static void runJsonTransform(JsonTrialOptions options) {
+	    Pipeline p = Pipeline.create(options);
+	    
+	    p.apply("ReadLines", TextIO.read().from(options.getInputFile()))
+	       	.apply("Employee Id Combination", MapElements.via(new SimpleFunction<String, String>(){
+	       		
+	       		@Override
+	       		public String apply(String input) {
+	       			
+	       		 HashMap<String, Object> hashmap = new HashMap<String, Object>();
+	       		 
+	       			ObjectMapper jacksonObjMapper = new ObjectMapper();
+	                try {
+	                	int sum=0;
+	                    JsonNode jsonNode = jacksonObjMapper.readTree(input);
+	                    
+	                    String avgString = jsonNode.get("phone").textValue().replaceAll("[-+()^a-zA-Z\\s]", "").trim();
+	                    
+	                    for(int i=0; i<avgString.length();i++) {
+	                    	sum=sum + avgString.charAt(i);
+	                    }
+	                    
+	                    hashmap.put("fname", jsonNode.get("fname").textValue().trim());
+	                    hashmap.put("age", jsonNode.get("age").intValue());
+	                    hashmap.put("empId", jsonNode.get("fname").textValue().trim().substring(0,2).toUpperCase() + jsonNode.get("age").intValue());
+	                    hashmap.put("avg", sum/avgString.length());
+	                    
+	                    String json = jacksonObjMapper.writeValueAsString(hashmap);
+	          		  
+	                    return json;	                    
+	                   
+	                } catch (JsonProcessingException e) {
+	                    e.printStackTrace();
+	                    return null;
+	                }
+	                catch (@SuppressWarnings("hiding") IOException e) {
+	                    e.printStackTrace();
+	                    return null;
+	                }
+	       		}                
+	       	}))
+	        .apply(TextIO.write().to(options.getOutput()));
+	        
+		    p.run().waitUntilFinish();
+
+	        Connection connection = null;
+	        try {
+	            connection = DriverManager.getConnection("jdbc:mysql://rds-msql.crgger8roage.ap-south-1.rds.amazonaws.com:6030/rdstest?allowLoadLocalInfile=true", "dbadmin","adminpass");
+	        } catch (SQLException e) {
+	            e.printStackTrace();
+	        }
+
+	        try {
+	            System.out.println("Established connection to " + connection.getMetaData().getURL());
+	        } catch (SQLException e1) {
+	            e1.printStackTrace();
+	        }
+	        Statement statement = null;
+	        try {
+	            statement = connection.createStatement();
+	            
+	            String path = options.getOutput();
+	            
+	            Path p1 = Paths.get(path);
+	            
+	            File dir = new File(p1.toAbsolutePath().toString());
+	            
+	            File[] files = dir.listFiles();
+	            
+	            for(int i=0; i<files.length; i++) {
+	            	//System.out.println("Query is ------>>>>>>" + "LOAD DATA LOCAL INFILE \"" + files[i].toString().replaceAll("\\\\", "/") + "\" into table rdstest.sample");
+	            	statement.executeUpdate("load data local infile \"" + files[i].toString().replaceAll("\\\\", "/") + "\" into table rdstest.sample LINES TERMINATED BY '\\n'");
+	            }
+	            //statement.executeUpdate("load data local infile \"" + files[0].toString().replaceAll("\\\\", "/") + "\" into table rdstest.sample LINES TERMINATED BY '\\n'");
+	            
+	            
+	        } catch(SQLException e) {
+	        } finally {
+	            if (statement != null) {
+	                try {
+	                    statement.close();
+	                } catch (SQLException e) {
+	                    e.printStackTrace();
+	                }
+	            }
+	        }
+	        if (connection != null) {
+	            try {
+	            	
+	                connection.close();
+	            } catch (SQLException e) {
+	                e.printStackTrace();
+	            }
+	        }
+	  }
+
+	  public static void main(String[] args) {
+		  
+		  Date start = new Date();
+		  
+		  JsonTrialOptions options = PipelineOptionsFactory.fromArgs(args).withValidation().as(JsonTrialOptions.class);
+		  
+		  //AwsOptionsParser.formatOptions(options);
+		  
+		  runJsonTransform(options);
+	    
+		  Date end = new Date();
+		  System.out.println((end.getTime() - start.getTime())/1000 + " --------*********total milliseconds");
+	  }
+
+}
